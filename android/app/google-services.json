@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "667178126492",
+    "project_id": "monitoring-tanaman-tt4c",
+    "storage_bucket": "monitoring-tanaman-tt4c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667178126492:android:9deb4fb0adc6802ce33159",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD4FtF3xOO6smyiQ8XFfUs2HAd3cnnIexk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_gauges/gauges.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firebase_options.dart';
+import 'dart:async';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(MyApp());
 }
 
@@ -27,24 +35,66 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final double coValue = 120.5; // ppm
-  final double suhu = 28.3; // °C
-  final double kelembaban = 60.0; // %
-  final String kipas = 'Aktif'; // atau 'Nonaktif'
-  final String kualitasUdara = 'Sedang'; // atau 'Baik' / 'Buruk'
+  double coValue = 0.0;
+  double suhu = 0.0;
+  double kelembaban = 0.0;
+  bool kipas = false; // Changed to boolean
+  String kualitasUdara = 'Sedang'; // Will be one of: 'Baik', 'Sedang', 'Buruk'
   bool isLoading = false;
+  Timer? _timer;
 
-  void refreshData() {
-    setState(() {
-      isLoading = true;
+  @override
+  void initState() {
+    super.initState();
+    fetchData();
+    _timer = Timer.periodic(Duration(seconds: 5), (timer) {
+      fetchData();
     });
+  }
 
-    // Simulate a delay for refreshing data
-    Future.delayed(Duration(seconds: 2), () {
-      setState(() {
-        isLoading = false;
-      });
-    });
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> fetchData() async {
+    try {
+      setState(() => isLoading = true);
+      
+      final snapshot = await FirebaseFirestore.instance
+          .collection('history')
+          .orderBy('date', descending: true)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        final data = snapshot.docs.first.data();
+        setState(() {
+          coValue = (data['co2'] ?? 0.0).toDouble();
+          suhu = (data['suhu'] ?? 0.0).toDouble();
+          kelembaban = (data['kelembaban'] ?? 0.0).toDouble();
+          
+          // Convert kipas value to boolean
+          var kipasValue = data['kipas'];
+          if (kipasValue is String) {
+            kipas = kipasValue.toLowerCase() == 'true';
+          } else if (kipasValue is bool) {
+            kipas = kipasValue;
+          } else {
+            kipas = false;
+          }
+          
+          // Handle udara with specific string values
+          String udara = data['udara'] ?? 'Sedang';
+          kualitasUdara = ['Baik', 'Sedang', 'Buruk'].contains(udara) ? udara : 'Sedang';
+        });
+      }
+    } catch (e) {
+      print('Error fetching data: $e');
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -94,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     InfoCard(
                       title: 'Status Kipas',
-                      value: kipas,
+                      value: kipas ? 'Aktif' : 'Nonaktif',
                       icon: Icons.toys,
                     ),
                   ],
@@ -103,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 isLoading
                     ? CircularProgressIndicator()
                     : ElevatedButton.icon(
-                        onPressed: refreshData,
+                        onPressed: fetchData,
                         icon: Icon(Icons.refresh),
                         label: Text("Refresh"),
                         style: ElevatedButton.styleFrom(
